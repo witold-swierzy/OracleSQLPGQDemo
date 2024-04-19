@@ -12,7 +12,7 @@ import oracle.pgx.config.*;
 import org.json.*;
 public class Main {
     static String PQ_EXECUTION_MODE;
-    static String PQ_PGX_URL;
+    static String PQ_REST_URL;
     static String PQ_USERNAME;
     static String PQ_PASSWORD;
     static String PQ_QUERY;
@@ -37,10 +37,10 @@ public class Main {
             PQ_JDBC_URL       = System.getenv("PQ_JDBC_URL").replace("\"","");
         else
             PQ_JDBC_URL       = "N/A";
-        if ( PQ_EXECUTION_MODE.equals("PQ_PGX_MODE") || PQ_EXECUTION_MODE.equals("PQ_REST_MODE"))
-            PQ_PGX_URL        = System.getenv("PQ_PGX_URL").replace("\"","");
+        if ( PQ_EXECUTION_MODE.equals("PQ_ORDS_REST_MODE") || PQ_EXECUTION_MODE.equals("PQ_PGX_REST_MODE"))
+            PQ_REST_URL        = System.getenv("PQ_REST_URL").replace("\"","");
         else
-            PQ_PGX_URL        = "N/A";
+            PQ_REST_URL        = "N/A";
     }
 
     public static void dbMode() {}
@@ -54,7 +54,7 @@ public class Main {
                       ",\"source\":\"OracleSQLPGQDemo\"}";
         HttpClient pgxServer = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
-                                         .uri(URI.create(PQ_PGX_URL + "/auth/token"))
+                                         .uri(URI.create(PQ_REST_URL + "/auth/token"))
                                          .header("Content-Type", "application/json")
                                          .POST(HttpRequest.BodyPublishers.ofString(body))
                                          .build();
@@ -77,7 +77,7 @@ public class Main {
                       "}";
         HttpClient pgxServer = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
-                                         .uri(URI.create(PQ_PGX_URL + "/v2/runQuery"))
+                                         .uri(URI.create(PQ_REST_URL + "/v2/runQuery"))
                                          .header("Authorization", "Bearer " + PQ_TOKEN)
                                          .header("Content-Type", "application/json")
                                          .POST(HttpRequest.BodyPublishers.ofString(body))
@@ -107,7 +107,7 @@ public class Main {
     public static void main(String[] args) {
         initDemo();
         System.out.println("Execution mode       : "+PQ_EXECUTION_MODE);
-        System.out.println("PGX Server URL       : "+PQ_PGX_URL);
+        System.out.println("PGX Server URL       : "+PQ_REST_URL);
         System.out.println("JDBC URL             : "+PQ_JDBC_URL);
         System.out.println("Query                : "+PQ_QUERY);
         System.out.println("Number of executions : "+PQ_EXECUTIONS);
@@ -122,10 +122,10 @@ public class Main {
         long end = System.currentTimeMillis();
         System.out.println("Summary : ");
         System.out.println("Execution mode           : "+PQ_EXECUTION_MODE);
-        System.out.println("PGX Server URL           : "+PQ_PGX_URL);
+        System.out.println("PGX Server URL           : "+PQ_REST_URL);
         System.out.println("JDBC URL                 : "+PQ_JDBC_URL);
         System.out.println("Query                    : "+PQ_QUERY);
         System.out.println("Number of executions     : "+PQ_EXECUTIONS);
-        System.out.println("Total elsapsed time (ms) : "+(end-start));
+        System.out.println("Total elapsed time (ms) : "+(end-start));
     }
 }
