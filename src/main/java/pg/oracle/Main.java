@@ -21,14 +21,18 @@ public class Main {
     static String PQ_TOKEN;
     public static void initDemo() {
         PQ_EXECUTION_MODE = System.getenv("PQ_EXECUTION_MODE").replace("\"","");
-        //PQ_EXECUTION_MODE = "PQ_PGX_MODE";
-        //PQ_EXECUTION_MODE = "PQ_REST_MODE";
+        //PQ_EXECUTION_MODE = "PQ_PGX_API_MODE";
+        //PQ_EXECUTION_MODE = "PQ_PGX_REST_MODE";
+        //PQ_EXECUTION_MODE = "PQ_ORDS_REST_MODE";
         //PQ_EXECUTION_MODE = "PQ_DB_MODE";
         PQ_USERNAME       = System.getenv("PQ_USERNAME").replace("\"","");
+        //PQ_USERNAME = "NonExistingUser";
         PQ_PASSWORD       = System.getenv("PQ_PASSWORD").replace("\"","");
+        //PQ_PASSWORD       = "IncorrectPassword";
         PQ_QUERY          = System.getenv("PQ_QUERY").replace("\"","");
-        PQ_EXECUTIONS     = Integer.valueOf(System.getenv("PQ_EXECUTIONS").replace("\"",""));
-        //PQ_EXECUTIONS     = 100;
+        //PQ_QUERY            = "IncorrectQuery";
+        //PQ_EXECUTIONS     = Integer.valueOf(System.getenv("PQ_EXECUTIONS").replace("\"",""));
+        PQ_EXECUTIONS     = 1;
         if ( PQ_EXECUTION_MODE.equals("PQ_DB_MODE"))
             PQ_JDBC_URL       = System.getenv("PQ_JDBC_URL").replace("\"","");
         else
@@ -41,7 +45,62 @@ public class Main {
 
     public static void dbMode() {}
 
-    public static void RESTMode() {}
+    public static void RESTlogin() throws Exception {
+        String body = "{\"username\":"+
+                      "\""+PQ_USERNAME+"\""+
+                      ",\"password\":"+
+                      "\""+PQ_PASSWORD+"\""+
+                      ",\"createSession\":true"+
+                      ",\"source\":\"OracleSQLPGQDemo\"}";
+        HttpClient pgxServer = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                                         .uri(URI.create(PQ_PGX_URL + "/auth/token"))
+                                         .header("Content-Type", "application/json")
+                                         .POST(HttpRequest.BodyPublishers.ofString(body))
+                                         .build();
+        HttpResponse<String> response = pgxServer.send(request, HttpResponse.BodyHandlers.ofString());
+        int status = response.statusCode();
+        JSONObject obj = new JSONObject(response.body());
+        if ( status != 201 )
+            throw new SQLPGQDemoException(PQ_EXECUTION_MODE,status,obj.toString());
+        PQ_TOKEN = obj.getString("access_token");
+    }
+
+    public static void RESTexecuteQuery() throws Exception {
+        String body = "{\n"+
+                      "   \"statements\": [\n"+
+                      "      \""+PQ_QUERY+"\"\n"+
+                      "   ],\n"+
+                      "   \"driver\": \"SQL_IN_DATABASE\",\n"+
+                      "   \"formatter\": \"GVT\",\n"+
+                      "   \"visualize\": true\n"+
+                      "}";
+        HttpClient pgxServer = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                                         .uri(URI.create(PQ_PGX_URL + "/v2/runQuery"))
+                                         .header("Authorization", "Bearer " + PQ_TOKEN)
+                                         .header("Content-Type", "application/json")
+                                         .POST(HttpRequest.BodyPublishers.ofString(body))
+                                         .build();
+        for ( int i=1; i<=PQ_EXECUTIONS; i++) {
+            HttpResponse<String> response = pgxServer.send(request, HttpResponse.BodyHandlers.ofString());
+            int status = response.statusCode();
+            JSONObject obj = new JSONObject(response.body());
+            if (!obj.getJSONArray("results")
+                    .getJSONObject(0)
+                    .getBoolean("success"))
+                throw new SQLPGQDemoException(PQ_EXECUTION_MODE,status,obj.toString());
+            System.out.println("Execution #"+i+" completed successfully");
+        }
+    }
+
+    public static void RESTMode() {
+        try {
+            RESTlogin();
+            RESTexecuteQuery();
+        }
+        catch (Exception e) {e.printStackTrace();}
+    }
 
     public static void PGXMode() {}
 
