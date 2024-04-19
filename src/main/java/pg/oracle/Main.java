@@ -45,7 +45,7 @@ public class Main {
 
     public static void dbMode() {}
 
-    public static void RESTlogin() throws Exception {
+    public static void RESTPGXlogin() throws Exception {
         String body = "{\"username\":"+
                       "\""+PQ_USERNAME+"\""+
                       ",\"password\":"+
@@ -66,7 +66,7 @@ public class Main {
         PQ_TOKEN = obj.getString("access_token");
     }
 
-    public static void RESTexecuteQuery() throws Exception {
+    public static void RESTPGXexecuteQuery() throws Exception {
         String body = "{\n"+
                       "   \"statements\": [\n"+
                       "      \""+PQ_QUERY+"\"\n"+
@@ -86,18 +86,18 @@ public class Main {
             HttpResponse<String> response = pgxServer.send(request, HttpResponse.BodyHandlers.ofString());
             int status = response.statusCode();
             JSONObject obj = new JSONObject(response.body());
-            if (!obj.getJSONArray("results")
-                    .getJSONObject(0)
-                    .getBoolean("success"))
+            if ( status > 299 || !obj.getJSONArray("results")
+                                     .getJSONObject(0)
+                                     .getBoolean("success") )
                 throw new SQLPGQDemoException(PQ_EXECUTION_MODE,status,obj.toString());
             System.out.println("Execution #"+i+" completed successfully");
         }
     }
 
-    public static void RESTMode() {
+    public static void RESTPGXMode() {
         try {
-            RESTlogin();
-            RESTexecuteQuery();
+            RESTPGXlogin();
+            RESTPGXexecuteQuery();
         }
         catch (Exception e) {e.printStackTrace();}
     }
@@ -115,8 +115,8 @@ public class Main {
         long start = System.currentTimeMillis();
         if ( PQ_EXECUTION_MODE.equals("PQ_DB_MODE"))
             dbMode();
-        if ( PQ_EXECUTION_MODE.equals("PQ_REST_MODE"))
-            RESTMode();
+        if ( PQ_EXECUTION_MODE.equals("PQ_PGX_REST_MODE"))
+            RESTPGXMode();
         if ( PQ_EXECUTION_MODE.equals("PQ_PGX_MODE"))
             PGXMode();
         long end = System.currentTimeMillis();
